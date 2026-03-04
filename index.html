@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Yo ne～ ∠( ≧▽^))⌒</title>
+</head>
+<style> 
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --text-dim: #555568;
+    --text-normal: #8888a0;
+    --text-active: #f0e6ff;
+    --accent: #a78bfa;
+    --accent-glow: rgba(167, 139, 250, 0.25);
+  }
+
+  body {
+    font-family: 'Noto Serif SC', serif;
+    background: var(--bg);
+    color: var(--text-normal);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  /* Background atmosphere */
+  body::before {
+    content: '';
+    position: fixed;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: radial-gradient(ellipse at 30% 20%, rgba(167, 139, 250, 0.04) 0%, transparent 50%),
+                radial-gradient(ellipse at 70% 80%, rgba(99, 102, 241, 0.03) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 600px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 3rem 1.5rem 2rem;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 2rem;
+    flex-shrink: 0;
+  }
+
+  .header h1 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+
+  .header .meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    letter-spacing: 0.08em;
+  }
+
+  .lyrics-wrapper {
+    flex: 1;
+    overflow-y: auto;
+    mask-image: linear-gradient(to bottom, transparent 0%, black 12%, black 88%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 12%, black 88%, transparent 100%);
+    padding: 4rem 0;
+    scroll-behavior: smooth;
+  }
+
+  .lyrics-wrapper::-webkit-scrollbar { width: 2px; }
+  .lyrics-wrapper::-webkit-scrollbar-track { background: transparent; }
+  .lyrics-wrapper::-webkit-scrollbar-thumb { background: var(--text-dim); border-radius: 2px; }
+
+  .lyric-line {
+    padding: 0.65rem 1.5rem;
+    font-size: 1.15rem;
+    line-height: 1.8;
+    color: var(--text-dim);
+    transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    cursor: pointer;
+    border-radius: 8px;
+    text-align: center;
+  }
+
+  .lyric-line:hover {
+    color: var(--text-normal);
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  .lyric-line.active {
+    color: var(--text-active);
+    font-size: 1.35rem;
+    font-weight: 700;
+    text-shadow: 0 0 30px var(--accent-glow);
+    transform: scale(1.02);
+  }
+
+  .lyric-line .timestamp {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    margin-right: 0.6rem;
+    opacity: 0;
+    transition: opacity 0.3s;
+    vertical-align: middle;
+  }
+
+  .lyric-line:hover .timestamp,
+  .lyric-line.active .timestamp {
+    opacity: 0.6;
+  }
+
+  /* Controls */
+  .controls {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(255,255,255,0.04);
+  }
+
+  .progress-bar {
+    width: 100%;
+    height: 3px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 3px;
+    cursor: pointer;
+    position: relative;
+  }
+
+  .progress-bar .fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 3px;
+    width: 0%;
+    transition: width 0.3s;
+    box-shadow: 0 0 8px var(--accent-glow);
+  }
+
+  .btn-row {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .btn {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    padding: 0.5rem 1.2rem;
+    border: 1px solid rgba(167, 139, 250, 0.2);
+    border-radius: 6px;
+    background: rgba(167, 139, 250, 0.06);
+    color: var(--accent);
+    cursor: pointer;
+    transition: all 0.25s;
+  }
+
+  .btn:hover {
+    background: rgba(167, 139, 250, 0.15);
+    border-color: rgba(167, 139, 250, 0.4);
+    box-shadow: 0 0 16px rgba(167, 139, 250, 0.1);
+  }
+
+  .time-display {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    min-width: 100px;
+    text-align: center;
+  }
+
+  /* Loading & error states */
+  .state-message {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+    line-height: 2;
+  }
+
+  .state-message code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    background: rgba(255,255,255,0.04);
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    color: var(--accent);
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .lyric-line {
+    animation: fadeIn 0.4s ease both;
+  }
+</style>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1 id="titleDisplay">彩p今天吃什么？</h1>
+    <div class="meta" id="metaDisplay">加载中...</div>
+  </div>
+
+  <div class="lyrics-wrapper" id="lyricsContainer">
+    <div class="state-message" id="stateMessage">
+      正在加载...
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="progress-bar" id="progressBar">
+      <div class="fill" id="progressFill"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn" id="btnPrev">⏮ -5s</button>
+      <button class="btn" id="btnPlay">▶ 播放</button>
+      <button class="btn" id="btnNext">+5s ⏭</button>
+      <div class="time-display" id="timeDisplay">00:00 / 00:00</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// LRC 解析器
+function parseLRC(text) {
+  const lines = text.split('\n');
+  const lyrics = [];
+  const meta = {};
+
+  // 元数据标签 [ti: 标题, ar: 作者, al: 专辑, by: 歌词贡献, 冒号和内容中间留空格]
+  const metaTags = { ti: 'title', ar: 'artist', al: 'album', by: 'by' };
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+
+    // 解析元数据 [ti:xxx]
+    const metaMatch = trimmed.match(/^\[(\w+):(.*)\]$/);
+    if (metaMatch && metaTags[metaMatch[1]]) {
+      meta[metaTags[metaMatch[1]]] = metaMatch[2].trim();
+      continue;
+    }
+
+    // 解析时间戳歌词 [mm:ss.xx]text 或 [mm:ss.xxx]text
+    const timeRegex = /\[(\d{1,2}):(\d{2})(?:[.:](\d{2,3}))?\]/g;
+    const times = [];
+    let match;
+
+    while ((match = timeRegex.exec(trimmed)) !== null) {
+      const min = parseInt(match[1], 10);
+      const sec = parseInt(match[2], 10);
+      let ms = match[3] ? parseInt(match[3], 10) : 0;
+      if (match[3] && match[3].length === 2) ms *= 10; // 两位转三位
+      times.push(min * 60 + sec + ms / 1000);
+    }
+
+    // 提取歌词文本（去掉所有时间标签）
+    const text = trimmed.replace(/\[\d{1,2}:\d{2}(?:[.:]\d{2,3})?\]/g, '').trim();
+
+    for (const time of times) {
+      lyrics.push({ time, text });
+    }
+  }
+
+  // 按时间排序
+  lyrics.sort((a, b) => a.time - b.time);
+  return { lyrics, meta };
+}
+
+// 时间格式化
+function formatTime(seconds) {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+// 主逻辑
+let lyrics = [];
+let currentIndex = -1;
+let isPlaying = false;
+let currentTime = 0;
+let totalTime = 0;
+let timerInterval = null;
+
+const container = document.getElementById('lyricsContainer');
+const stateMsg = document.getElementById('stateMessage');
+const titleDisplay = document.getElementById('titleDisplay');
+const metaDisplay = document.getElementById('metaDisplay');
+const btnPlay = document.getElementById('btnPlay');
+const btnPrev = document.getElementById('btnPrev');
+const btnNext = document.getElementById('btnNext');
+const timeDisplay = document.getElementById('timeDisplay');
+const progressFill = document.getElementById('progressFill');
+const progressBar = document.getElementById('progressBar');
+
+// 加载 LRC 文件
+async function loadLRC(path) {
+  try {
+    const response = await fetch(path);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const text = await response.text();
+    const parsed = parseLRC(text);
+
+    lyrics = parsed.lyrics;
+    if (lyrics.length === 0) {
+      stateMsg.innerHTML = '文件解析成功但未找到歌词行';
+      return;
+    }
+
+    // 设置总时长（最后一行时间 + 5秒缓冲）
+    totalTime = lyrics[lyrics.length - 1].time + 5;
+
+    // 更新元数据
+    if (parsed.meta.title) titleDisplay.textContent = parsed.meta.title;
+    const parts = [];
+    if (parsed.meta.artist) parts.push(parsed.meta.artist);
+    if (parsed.meta.album) parts.push(parsed.meta.album);
+    
+    // 当 `artist` 或 `album` 存在时才会显示，否则就 fallback 到"共 X 行歌词"。
+    metaDisplay.textContent = parts.length ? parts.join(' · ') : `共 ${lyrics.length} 行歌词`;
+
+    renderLyrics();
+  } catch (err) {
+    stateMsg.innerHTML = `
+      无法加载 LRC 文件<br><br>
+      <code>${err.message}</code><br><br>
+      提示：浏览器不允许直接读取本地文件，<br>
+      请通过本地服务器访问此页面：<br><br>
+      <code>python -m http.server 8000</code><br>
+      或 <code>npx serve .</code><br><br>
+      然后访问 <code>http://localhost:8000</code>
+    `;
+  }
+}
+
+// 渲染歌词
+function renderLyrics() {
+  container.innerHTML = '';
+  lyrics.forEach((item, index) => {
+    const div = document.createElement('div');
+    div.className = 'lyric-line';
+    div.style.animationDelay = `${index * 0.03}s`;
+    div.innerHTML = `<span class="timestamp">${formatTime(item.time)}</span>${item.text || '♪'}`;
+    div.addEventListener('click', () => seekTo(item.time));
+    container.appendChild(div);
+  });
+}
+
+// 更新当前高亮行
+function updateActiveLine() {
+  let newIndex = -1;
+  for (let i = lyrics.length - 1; i >= 0; i--) {
+    if (currentTime >= lyrics[i].time) {
+      newIndex = i;
+      break;
+    }
+  }
+
+  if (newIndex !== currentIndex) {
+    const lines = container.querySelectorAll('.lyric-line');
+    if (currentIndex >= 0 && lines[currentIndex]) {
+      lines[currentIndex].classList.remove('active');
+    }
+    if (newIndex >= 0 && lines[newIndex]) {
+      lines[newIndex].classList.add('active');
+      // 滚动到高亮行
+      lines[newIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    currentIndex = newIndex;
+  }
+
+  // 更新进度
+  timeDisplay.textContent = `${formatTime(currentTime)} / ${formatTime(totalTime)}`;
+  progressFill.style.width = `${(currentTime / totalTime) * 100}%`;
+}
+
+// 播放/暂停
+function togglePlay() {
+  if (isPlaying) {
+    clearInterval(timerInterval);
+    isPlaying = false;
+    btnPlay.textContent = '▶ 播放';
+  } else {
+    isPlaying = true;
+    btnPlay.textContent = '⏸ 暂停';
+    timerInterval = setInterval(() => {
+      currentTime += 0.1;
+      if (currentTime >= totalTime) {
+        currentTime = 0;
+        currentIndex = -1;
+      }
+      updateActiveLine();
+    }, 100);
+  }
+}
+
+// 跳转
+function seekTo(time) {
+  currentTime = Math.max(0, Math.min(time, totalTime));
+  currentIndex = -1;
+  updateActiveLine();
+}
+
+// 事件绑定
+btnPlay.addEventListener('click', togglePlay);
+btnPrev.addEventListener('click', () => seekTo(currentTime - 5));
+btnNext.addEventListener('click', () => seekTo(currentTime + 5));
+
+progressBar.addEventListener('click', (e) => {
+  const rect = progressBar.getBoundingClientRect();
+  const ratio = (e.clientX - rect.left) / rect.width;
+  seekTo(ratio * totalTime);
+});
+
+// 键盘快捷键
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
+  if (e.code === 'ArrowLeft') seekTo(currentTime - 5);
+  if (e.code === 'ArrowRight') seekTo(currentTime + 5);
+});
+
+// 加载歌词文件
+loadLRC('lyrics/瞬間、シンフォニー。（简体中文）.lrc'); //有后端的话这里直接接后端反馈回的歌词文件路径就可以了 歌词文件要用lrc格式
+</script>
+</body>
+</html>
